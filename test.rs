@@ -1,7 +1,6 @@
 fn main() {
     let mut s = std::string::String::from("123123");
-    let mut s2 = &mut (*(&mut s));
-    s2.insert_str(0, "Hello ");
-    println!("{}", s);
+    let s2 = &mut s;
+    let mut a = *s2;
     // println!("{}", s2);
 }

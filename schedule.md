@@ -187,6 +187,8 @@ https://rust-unofficial.github.io/too-many-lists/
 有时开始学习的时候没有直入主题
 
 早上科目二模拟
-十一点10到十一点48看这篇生命周期的文章，这讲得深，但是看不太懂。https://medium.com/nearprotocol/understanding-rust-lifetimes-e813bcd405fa
+11:10到11:48看这篇生命周期的文章，这讲得深，但是看不太懂。https://medium.com/nearprotocol/understanding-rust-lifetimes-e813bcd405fa
 下次再好好看看，先搞rcore
 
+1:13-1：20 协变逆变啥的还是不太懂。 
+https://cloud.tencent.com/developer/article/1125633

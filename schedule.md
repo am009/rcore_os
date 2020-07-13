@@ -183,7 +183,7 @@ https://rust-unofficial.github.io/too-many-lists/
 <span id="009"></span>
 ## Day 9 (2020-07-12)
 
-我今天开始要对我的学习时间有更精细的记录，方便找出不足
+我今天开始要对我的学习时间有更精细的记录，方便找出不足.
 有时开始学习的时候没有直入主题
 
 早上科目二模拟
@@ -192,3 +192,23 @@ https://rust-unofficial.github.io/too-many-lists/
 
 1:13-1：20 协变逆变啥的还是不太懂。 
 https://cloud.tencent.com/developer/article/1125633
+
+1:20-2:05 跟着做lab0. 把平台切换到了ubuntu虚拟机里
+
+经常用到的命令
+rustup target add riscv64imac-unknown-none-elf
+cargo install cargo-binutils
+rustup component add llvm-tools-preview
+rustup default nightly
+rustup update
+
+需要学学输入任意数量参数的宏.
+
+----------
+下午和晚上思考了很久开证明的事情, 然后去玩手机了...
+
+
+<span id="010"></span>
+## Day 10 (2020-07-13)
+上午考了一上午科目二, 排队排了一个上午, 十二点半才回来... 这有点伤进度
+1:18-

@@ -9,13 +9,10 @@ use crate::interrupt::timer;
 
 global_asm!(include_str!("./interrupt.asm"));
 
-/// 初始化中断处理
-///
-/// 把中断入口 `__interrupt` 写入 `stvec` 中，并且开启中断使能
 pub fn init() {
     unsafe {
         extern "C" {
-            /// `interrupt.asm` 中的中断入口
+            /// 声明__interrupt作为函数 
             fn __interrupt();
         }
         // 使用 Direct 模式，将中断入口设置为 `__interrupt`
@@ -29,7 +26,6 @@ pub fn init() {
 /// 具体的中断类型需要根据 scause 来推断，然后分别处理
 #[no_mangle]
 pub fn handle_interrupt(context: &mut Context, scause: Scause, stval: usize) {
-    // 可以通过 Debug 来查看发生了什么中断
     // println!("{:x?}", context.scause.cause());
     match scause.cause() {
         // 断点中断（ebreak）
@@ -59,9 +55,9 @@ fn supervisor_timer(_: &Context) {
 /// 出现未能解决的异常
 fn fault(context: &mut Context, scause: Scause, stval: usize) {
     panic!(
-        "Unresolved interrupt: {:?}\nstval: {:x}",
+        "Unresolved interrupt: {:?}\n{:x?}\nstval: {:x}",
         scause.cause(),
-        // context,
+        context,
         stval
     );
 }

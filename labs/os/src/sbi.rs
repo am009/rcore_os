@@ -2,6 +2,8 @@
 // 目前还不会用到全部的 SBI 调用，暂时允许未使用的变量或函数
 #![allow(unused)]
 
+use riscv::register::time;
+
 /// SBI 调用
 #[inline(always)]
 fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
@@ -43,4 +45,19 @@ pub fn console_getchar() -> usize {
 pub fn shutdown() -> ! {
     sbi_call(SBI_SHUTDOWN, 0, 0, 0);
     unreachable!()
+}
+
+/// 设置下一次时钟中断的时间
+pub fn set_timer(time: usize) {
+    sbi_call(SBI_SET_TIMER, time, 0, 0);
+}
+
+/// 时钟中断的间隔，单位是 CPU 指令
+static INTERVAL: usize = 100000;
+
+/// 设置下一次时钟中断
+/// 
+/// 获取当前时间，加上中断间隔，通过 SBI 调用预约下一次中断
+fn _timeout() {
+    set_timer(time::read() + INTERVAL);
 }

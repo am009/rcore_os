@@ -55,8 +55,23 @@ frame模块除了frame_tracker的实现, 同时承载分配相关的实现: allo
 
 frame tracker创建的时候不会自动申请页面, 因此想要获得frame tracker需要通过allocator分配.
 
+思考题有些神奇, 不把申请到的页面的所有权传到外面, 就会死锁.
+
 ## 使用自己的堆分配算法
-TODO
+堆分配算法对外的接口一个是`#[global_allocator]`标注, 一个是init函数.
+使用的是bitmap标记空闲, 以字节为单位, 查找时按照对齐要求的倍数顺序查找(作为内存的开头), 直到遇到了空闲处.
+只标记4096字节, 最多只能管理4K的内存. 这里的实现也是对usize偏移index做分配, 不考虑基地址.
+接着把旧的heap.rs重命名为heap_old.rs 新建heap.rs对算法封装. 为了global_allocator要实现alloc::alloc::GlobalAlloc这个trait. 两个函数, 传入的是core::alloc::Layout, 并且需要处理指针类型 *mut u8. 直接整个实现都是unsafe的. Heap全局变量在算法的基础上包了一层Option, 再包UnsafeCell.
+UnsafeCell需要get再as_mut, Option就unwarp, 就可以得到内部的VectorAllocatorImpl调用alloc/dealloc函数.
+
+Option的作用是提供默认值?? 初始化之前, Option里是None, 初始化函数使用replace函数替换成实例之后才能分配, 否则会在unwrap的时候panic
+
+完成之后, 将堆测试的两个循环数量从10000减少到100才能正常通过测试
+
+下面这句话的下划线是什么意思??
+```rust
+let offset = ptr as usize - &HEAP_SPACE as *const _ as usize;
+```
 
 ## 问题
 context.rs中给context结构体实现了Default trait, 使用全零. 这里不实现会怎么样
@@ -73,3 +88,6 @@ rustdoc的注释写法里`//!`是什么意思??
 
 print trait的实现
 抽象实现的时候的宏的用法, 宏参数的几个类型
+
+https://doc.rust-lang.org/reference/visibility-and-privacy.html
+pub(super) 对父模块公开

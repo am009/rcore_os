@@ -38,6 +38,24 @@ pub extern "C" fn rust_main() -> ! {
         println!("alloc and get {:x?} and {:x?}", frame_0.address(), frame_1.address());
     }
 
+    // 动态内存分配测试
+    use alloc::boxed::Box;
+    use alloc::vec::Vec;
+    let v = Box::new(5);
+    assert_eq!(*v, 5);
+    core::mem::drop(v);
+    println!("heap test started");
+    let mut vec = Vec::new();
+    for i in 0..100 {
+        vec.push(i);
+    }
+    assert_eq!(vec.len(), 100);
+    for (i, value) in vec.into_iter().enumerate() {
+        assert_eq!(value, i);
+    }
+    println!("heap test passed");
+    
+
     unsafe {
         llvm_asm!("ebreak"::::"volatile");
     };

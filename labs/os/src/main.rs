@@ -46,10 +46,10 @@ pub extern "C" fn rust_main() -> ! {
     core::mem::drop(v);
     println!("heap test started");
     let mut vec = Vec::new();
-    for i in 0..100 {
+    for i in 0..10000 {
         vec.push(i);
     }
-    assert_eq!(vec.len(), 100);
+    assert_eq!(vec.len(), 10000);
     for (i, value) in vec.into_iter().enumerate() {
         assert_eq!(value, i);
     }

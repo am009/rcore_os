@@ -66,7 +66,7 @@ UnsafeCell需要get再as_mut, Option就unwarp, 就可以得到内部的VectorAll
 
 Option的作用是提供默认值?? 初始化之前, Option里是None, 初始化函数使用replace函数替换成实例之后才能分配, 否则会在unwrap的时候panic
 
-完成之后, 将堆测试的两个循环数量从10000减少到100才能正常通过测试
+完成之后, 将堆测试的两个循环数量从10000减少到100才能正常通过测试. 看来还是不太好用, 切换回之前的buddy system算法吧
 
 下面这句话的下划线是什么意思??
 ```rust

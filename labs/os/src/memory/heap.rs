@@ -1,5 +1,5 @@
 
-use crate::memory::config::KERNEL_HEAP_SIZE;
+use super::config::KERNEL_HEAP_SIZE;
 use buddy_system_allocator::LockedHeap;
 extern crate alloc;
 
@@ -9,9 +9,11 @@ static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
 static HEAP: LockedHeap = LockedHeap::empty();
 
 pub fn init() {
+    let start = unsafe { HEAP_SPACE.as_ptr() as usize };
+    println!("heap initializing at 0x{:x} - 0x{:x}.", start, start + KERNEL_HEAP_SIZE);
     unsafe {
         HEAP.lock().init(
-            HEAP_SPACE.as_ptr() as usize, KERNEL_HEAP_SIZE
+            start, KERNEL_HEAP_SIZE
         )
     }
 }

@@ -1,6 +1,6 @@
 
 use crate::memory::config::{KERNEL_END_ADDRESS, MEMORY_END_ADDRESS};
-use crate::memory::address::PhysicalPageNumber; 
+use crate::memory::address::{PhysicalPageNumber, PhysicalAddress}; 
 use crate::memory::MemoryResult;
 use crate::memory::range::Range;
 use super::frame_tracker::FrameTracker;
@@ -14,7 +14,7 @@ pub type AllocImpl = StackedAllocator;
 
 lazy_static! {
     pub static ref FRAME_ALLOCATOR: Mutex<FrameAllocator<AllocImpl>> = Mutex::new(FrameAllocator::new(Range::from(
-            PhysicalPageNumber::ceil(*KERNEL_END_ADDRESS)..PhysicalPageNumber::floor(MEMORY_END_ADDRESS),
+            PhysicalPageNumber::ceil(PhysicalAddress::from(*KERNEL_END_ADDRESS))..PhysicalPageNumber::floor(MEMORY_END_ADDRESS),
         )
     ));
 }

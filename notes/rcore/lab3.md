@@ -18,6 +18,15 @@ Sv39最大支持512G地址空间, 分为3级页表. 每级页表大小都是一�
 
 要在修改 satp 的指令后面马上使用 sfence.vma 指令刷新整个 TLB。手动修改一个页表项之后可以在sfence.vma后面加上一个虚拟地址，这样 sfence.vma 只会刷新这个虚拟地址的映射。
 
+### 页表工作方式
+1.  首先从 `satp` 中获取页表根节点的页号，找到根页表
+2.  对于虚拟地址中每一级 VPN（9 位），在对应的页表中找到对应的页表项
+3.  如果对应项 Valid 位为 0，则发生 Page Fault
+4.  如果对应项 Readable / Writable 位为 1，则表示这是一个叶子节点。
+    页表项中的值便是虚拟地址对应的物理页号
+    如果此时还没有达到最低级的页表，说明这是一个大页
+5.  将页表项中的页号作为下一级查询目标，查询直到达到最低级的页表，最终得到页号
+
 ## 内核启动
 
 内核的地址空间要抬高, 不是平移256G. 数据段起始地址改为
@@ -53,12 +62,49 @@ Sv39最大支持512G地址空间, 分为3级页表. 每级页表大小都是一�
 
 
 ## 实现页表 src/memory/mapping
+不仅封装了页表, 页表项, 还封装了mapping结构, 类似ucore的vma
+1. page_table_entry.rs 封装页表项. 实现了Flags类, 表示每个entry低8bit的标志位. 用implement_flags宏抽象实现了标志位的读. 封装了页表项, 提供了address函数, page_number函数用来找到页表项指向的页面, 实现了flags函数获取flags, 还有is_empty函数, has_next_level函数, 最后实现了Debug trait的打印
+2. page_table.rs 封装了页表(页表项数组) 创建时要申请物理页将指向页的指针转为PageTable类型. 这里把之前的frame_tracker增加了derefMut到u8数组的trait. 封装了PageTableTracker作为PageTable的智能指针. 内部包含一个FrameTracker, 实现自动释放内存的功能. 和PageTable只有一个Deref的距离. FrameTracker管理一个页, 并且能转换为任何类型, 作为任何类型的智能指针, 包装了FrameTracker的PageTableTracker更加具体, 作为页表的智能指针.
+3. segment.rs 封装了线性映射类型, 实现了按页遍历某个映射的功能. 映射有两种类型, 操作系统使用的线性映射, 和按帧分配的离散映射. 后者只能遍历虚拟页, 前者可以直接使用虚拟转物理的转换trait遍历物理页.
+4. mapping.rs 负责管理各种页表 使用vec保存PageTableTracker这个智能指针同时另外保存根页表的物理页号(对应页表寄存器). 实现了激活该页表activate函数, new函数新建页表同时分配根目录表, map函数映射一个segment, map_one函数映射一页, unmap移除映射, ucore同款会创建页表的find_entry函数, 虚拟地址查找物理地址的lookup函数.
+5. memorySet总览保存全局, 实现添加和删除映射的总接口, 调用下部的mapping的添加和删除映射的接口. 另外还实现了让main函数调用的new_kernel新建memorySet和各种映射的函数, 之后还要实现读取ELF创建映射的函数(TODO)
+
+mapping负责管理页表, 整个文件100多行, 非常重要. 
+1. map_one函数, 映射一个页, 调用find_entry找到对应的entry, 为空则新建并填入Page: `*entry = PageTableEntry::new(ppn, flags);`由于page_table就是page_table_entry数组, 因此直接赋值由于实现了Copy, 就导致页表项写入.
+2. lookup函数, 这个函数是静态的!! 首先拿出当前的页表寄存器内的值, 找到页目录表. 把参数的虚拟地址转为页号调用levels函数方便获取每级下标. 然后先取好最高级页表的下标, 再在循环中如果有下一级页表, 不断取下标, 直到页表项为空(判断valid???), 或者不再有下一level, 此时的entry就保存了base地址, 加上虚拟地址低位的offset(不一定只有12位)得到真正的地址.
+3. find_entry函数, 这个函数和lookup有些类似, 但是是从自己的mapping实例的页表物理页号中找到页表, 找的过程中如果页表不存在就直接分配新的页作为页表, 总是能找到页表项, 而且找的总是代表4k一页大小的第三级页表项.
+4. unmap函数, 调用find_entry函数并调用clear
+5. map函数, map一整个segment. 如果是线性映射, 则遍历虚拟地址不断调用map_one填页表项, 有数据复制数据, 最重要的特点是不用分配物理页面. 如果是离散映射, 则遍历虚拟地址不断分配页面, 把分配到的页面填充0. 拷贝数据的时候映射还没建立, 需要从物理地址加offset这个通用的访问物理内存的映射来复制, 还要考虑区间与整页不对齐的情况, start变量指从页开头开始的偏移, 指向需要复制数据的开始位置. stop变量也是偏移. 每次循环只处理一页. 当开始位置大于当前页的起始位置, 说明是第一页, 需要从开始位置而不是页开头进行复制. 否则就从开始位置复制. 当结束位置减去页起始位置, 小于页的大小的时候, 就说明是最后一页, 需要复制到结束位置为止, 而不是页结束位置.
+
+MemorySet 就是一个进程的所有内存空间管理的信息了. 内部包含Mapping, 负责管理页表, 用一个数组保存PageTableTracker(自己管理页表占用的物理页面), 并且另外保存页目录表. 包含segment数组, 内含每个映射, 和allocated_pairs数组, 保存虚拟页号到物理页智能指针(FrameTracker)的元组, 拿着分配的物理页.
+简而言之, MemorySet包含1页表2映射3物理页
+
+添加新的映射的时候, 一方面要添加页表, 一方面要加入映射vec保存, 如果申请了物理页要放到物理页vec中. 还可以检查是否和当前内存空间重叠.
+
+最后建立内核映射, 在memory/config中加入MMIO 设备段内存区域起始地址: DEVICE_START_ADDRESS, 和DEVICE_END_ADDRESS, 将kernel_end_address 改成虚拟地址, allocator里要加一处from, config里的高位地址都要改改.
+memory mapped io 访问这里的地址就是直接与外设交互.
 
 
 ## 其他问题
 
+大页映射(如1G的页)有没有对齐要求??
+
 ld脚本中添加对齐的地方
 bss 应该不用对齐吧, 和data一起就行? 但是分在不同的页方便映射, 否则要把data段末尾清零.
+
+mapping中保存页表用的vec
+如果vec是在堆上分配的, 那堆空间会不会不足?? 
+
+lookup函数中遍历页表项的时候只判断了empty而没有判断valid?? 而且page table_entry里面甚至没有判断valid这个bit的函数. 难道目前的pte都总是valid的吗.?? 可能还没有swap的设计??
+
+之后有用户态程序的时候用户态页表会不会保留操作系统的线性映射??
+
+这里线性映射复制数据到新映射的页面的方法:
+```rust
+(&mut *slice_from_raw_parts_mut(segment.range.start.deref(), data.len())).copy_from_slice(data);
+```
+这个函数和memcpy有类似吗? 怎么用?
+这里的代码是否没检查边界??
 
 ## 其他知识点
 

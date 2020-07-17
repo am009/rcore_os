@@ -3,6 +3,7 @@
 
 use crate::memory::address::{PhysicalPageNumber, PhysicalAddress};
 use super::allocator::FRAME_ALLOCATOR;
+use crate::memory::config::PAGE_SIZE;
 
 pub struct FrameTracker(pub(super) PhysicalPageNumber);
 
@@ -14,6 +15,19 @@ impl FrameTracker {
     /// 物理页号
     pub fn page_number(&self) -> PhysicalPageNumber {
         self.0
+    }
+}
+
+impl core::ops::Deref for FrameTracker {
+    type Target = [u8; PAGE_SIZE];
+    fn deref(& self) -> & Self::Target {
+        self.page_number().deref_kernel()
+    }
+}
+
+impl core::ops::DerefMut for FrameTracker {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.page_number().deref_kernel()
     }
 }
 

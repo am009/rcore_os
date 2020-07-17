@@ -6,6 +6,9 @@
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 #![feature(const_raw_ptr_to_usize_cast)]
+#![warn(clippy::all)]
+#![feature(slice_fill)]
+#![allow(dead_code)]
 #[macro_use]
 
 
@@ -23,6 +26,9 @@ pub extern "C" fn rust_main() -> ! {
     // 初始化各种模块
     interrupt::init();
     memory::init();
+
+    let remap = memory::mapping::MemorySet::new_kernel().unwrap();
+    remap.activate();
 
     println!("kernel end at: {:x?}", *memory::config::KERNEL_END_ADDRESS);
 

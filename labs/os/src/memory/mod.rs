@@ -5,6 +5,7 @@ pub mod config;
 pub mod address;
 pub mod range;
 mod bitmap_vector_allocator;
+pub mod mapping;
 
 pub type MemoryResult<T> = Result<T, &'static str>;
 

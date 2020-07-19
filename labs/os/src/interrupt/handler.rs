@@ -78,8 +78,9 @@ fn breakpoint(context: &mut Context) -> Result<*mut Context, String> {
 /// 目前只会在 [`timer`] 模块中进行计数
 fn supervisor_timer(context: &mut Context) -> Result<*mut Context, String> {
     timer::tick();
-    PROCESSOR.get().park_current_thread(context);
-    Ok(PROCESSOR.get().prepare_next_thread())
+    // PROCESSOR.get().park_current_thread(context);
+    // Ok(PROCESSOR.get().prepare_next_thread())
+    Ok(PROCESSOR.get().tick(context))
 }
 
 /// 出现未能解决的异常

@@ -32,6 +32,26 @@ impl Processor {
         }
         unreachable!()
     }
+    pub fn tick(&mut self, context: &mut Context) -> *mut Context {
+        loop {
+            if let Some(next_thread) = self.scheduler.get_next() {
+                if next_thread == self.current_thread() {
+                    return context
+                }
+                self.current_thread().park(*context);
+                let context = next_thread.prepare();
+                self.current_thread = Some(next_thread);
+                return context
+            } else {
+                // 没有活跃线程
+                if self.sleeping_threads.is_empty() {
+                    panic!("no thread to schedule or sleeping!! shutting down...");
+                } else {
+                    crate::interrupt::wait_for_interrupt();
+                }
+            }
+        }
+    }
     pub fn prepare_next_thread(&mut self) -> *mut Context {
         loop {
             if let Some(next_thread) = self.scheduler.get_next() {

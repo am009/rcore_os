@@ -5,6 +5,7 @@ mod process;
 mod processor;
 mod thread;
 mod hrrn_scheduler;
+mod lock;
 
 use hrrn_scheduler::{SchedulerImpl, Scheduler};
 use crate::interrupt::context::Context;
@@ -15,7 +16,7 @@ use crate::memory::range::Range;
 use crate::memory::MemoryResult;
 use alloc::{sync::Arc, vec, vec::Vec};
 use spin::{Mutex, RwLock};
-use crate::unsafe_wrapper::UnsafeWrapper;
+use lock::Lock;
 
 pub use config::*;
 pub use kernel_stack::KERNEL_STACK;

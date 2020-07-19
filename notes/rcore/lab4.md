@@ -112,8 +112,28 @@ handle_interrupt函数中, 每个单独的处理函数确实应该返回应该Re
 fault函数现在出现异常的时候会杀死当前的线程了, 传入的参数也变了
 最重要的当然还是timer的时候调度一下
 
-## 内核栈的使用
+## lock.rs
+为Mutex增加关中断的功能得到Lock. 则当获取其中内容的时候, 既关+保存了中断, 又独占了资源.
 
+具体实现上, 上锁是在get函数中, 释放是在Drop的trait中.
+
+同时实现了deref和deref mut, 可作为被包裹对象的智能指针使用.
+
+另外实现了一个不上锁不关中断, 直接获得内部对象的unsafe_get函数, 用于PROCESSOR::run()的时候因为不会返回, 导致不会调用对应的析构函数
+
+## 线程的结束
+这感觉有点为了结束而结束的意思, 我虽然不喜欢这样, 但是Supervisor模式的ecall似乎, 不一定能由supervisor自己处理... 需要看看opensbi...
+
+
+## 大更新
+突然出现了一次巨大的commit, 导致我不得不跟着改很多东西
+Process不再用unsafe wrapper, 而是用新加入的lock
+线程的结束一节相关的更新
+context中默认返回地址不再是-1 而是0.
+interrupt handler 里不再返回Result类型了, 退回了之前的
+main函数改了很多
+
+## 内核栈的使用
 
 issue中曾经出现了内核栈的问题??
 
@@ -131,6 +151,10 @@ Arc RwLock包着进程, 创建新线程的时候会把Arc RwLock-进程的所有
 ## 当前方式的优缺点
 当前方式: 不支持中断嵌套, 不支持多核, 共用处理中断的内核栈.
 至少进程ID生成简单, 连Mutex都不用了.
+
+
+## 主动的尝试:
+增加tick函数, 这样当不切换的时候就不用park当前线程和prepare下一个
 
 ## 其他问题
 
@@ -154,6 +178,8 @@ interrupt.asm中开辟 Context 的空间, 为什么是36\*8字节?? 而不是34\
 整个os对生命周期的使用情况怎么样?
 park_current_thread那里会解引用了一个引用, 会夺走所有权吗????
 
+lock.rs 中似乎是先恢复的sstatus寄存器再释放的MutexGuard吧...
+https://doc.rust-lang.org/nomicon/lifetimes.html
 
 ## x86 vs riscv 中断对比
 

@@ -4,7 +4,7 @@ use hashbrown::HashSet;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref PROCESSOR: UnsafeWrapper<Processor> = Default::default();
+    pub static ref PROCESSOR: Lock<Processor> = Lock::new(Default::default());
 }
 
 #[derive(Default)]

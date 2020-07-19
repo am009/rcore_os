@@ -15,6 +15,7 @@ pub struct Thread {
 pub struct ThreadInner {
     pub context: Option<Context>,
     pub sleeping: bool,
+    pub dead: bool,
     // pub descriptors: Vec<Arc<dyn Inode>>
 }
 
@@ -58,6 +59,7 @@ impl Thread {
             inner: Mutex::new(ThreadInner {
                 context: Some(context),
                 sleeping: false,
+                dead: false
                 // descriptor:
             }),
         });

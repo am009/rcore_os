@@ -42,6 +42,15 @@ pub fn init() {
 #[no_mangle]
 pub fn handle_interrupt(context: &mut Context, scause: Scause, stval: usize) -> *mut Context {
     // println!("{:x?}", context.scause.cause());
+    {
+        let mut processor = PROCESSOR.get();
+        let current_thread = processor.current_thread();
+        if current_thread.as_ref().inner().dead {
+            println!("thread {} exit", current_thread.id);
+            processor.kill_current_thread();
+            return processor.prepare_next_thread();
+        }
+    }
     match scause.cause() {
         // 断点中断（ebreak）
         Trap::Exception(Exception::Breakpoint) => breakpoint(context),

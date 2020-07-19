@@ -20,6 +20,10 @@ mod sbi;
 mod unsafe_wrapper;
 extern crate alloc;
 
+use process::{Process, PROCESSOR, Thread};
+use spin::RwLock;
+use alloc::sync::Arc;
+
 global_asm!(include_str!("entry.asm"));
 
 #[no_mangle]
@@ -27,20 +31,56 @@ pub extern "C" fn rust_main() -> ! {
     // 初始化各种模块
     memory::init();
     interrupt::init();
-    
-    start_kernel_thread(test_kernel_thread as usize, Some(&[0usize]));
 
-    process::PROCESSOR.get().run()
+    {
+        let mut processor = PROCESSOR.get();
+        let kernel_process = Process::new_kernel().unwrap();
+        for i in 1..33usize {
+            processor.add_thread(create_kernel_thread(
+                kernel_process.clone(),
+                test_kernel_thread as usize,
+                Some(&[i]),
+            ));
+        }
+        processor.add_thread(create_kernel_thread(kernel_process.clone(), test_kernel as usize, Some(&[0usize])));
+    }
+
+    unsafe { PROCESSOR.unsafe_get().run() }
 
 }
 
-fn start_kernel_thread(entry_point: usize, arguments: Option<&[usize]>) {
-    let process = process::Process::new_kernel().unwrap();
-    let thread = process::Thread::new(process, entry_point, arguments).unwrap();
-    process::PROCESSOR.get().add_thread(thread);
-}
 
 fn test_kernel_thread(id: usize) {
+    println!("hello from kernel thread {}", id);
+}
+
+fn kernel_thread_exit() {
+    // 当前线程标记为结束
+    PROCESSOR.get().current_thread().as_ref().inner().dead = true;
+    // 制造一个中断来交给操作系统处理
+    unsafe { llvm_asm!("ebreak" :::: "volatile") };
+}
+
+pub fn create_kernel_thread(
+    process: Arc<RwLock<Process>>,
+    entry_point: usize,
+    arguments: Option<&[usize]>,
+) -> Arc<Thread> {
+    // 创建线程
+    let thread = Thread::new(process, entry_point, arguments).unwrap();
+    // 设置线程的返回地址为 kernel_thread_exit
+    thread
+        .as_ref()
+        .inner()
+        .context
+        .as_mut()
+        .unwrap()
+        .set_ra(kernel_thread_exit as usize);
+
+    thread
+}
+
+fn test_kernel(id: usize) {
     println!("hello from kernel thread {}", id);
 
     println!("kernel end at: {:x?}", *memory::config::KERNEL_END_ADDRESS);
@@ -81,6 +121,5 @@ fn test_kernel_thread(id: usize) {
     unsafe {
         llvm_asm!("ebreak"::::"volatile");
     };
-    unreachable!();
 
 }

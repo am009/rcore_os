@@ -1,5 +1,5 @@
 //! 一个线程中关于内存空间的所有信息 [`MemorySet`]
-//! 
+//!
 //! 一组映射
 
 use crate::memory::{
@@ -15,7 +15,7 @@ use alloc::{vec, vec::Vec};
 pub struct MemorySet {
     pub mapping: Mapping,
     pub segments: Vec<Segment>,
-    pub allocated_pairs: Vec<(VirtualPageNumber, FrameTracker)>
+    pub allocated_pairs: Vec<(VirtualPageNumber, FrameTracker)>,
 }
 
 impl MemorySet {
@@ -28,17 +28,21 @@ impl MemorySet {
         false
     }
     pub fn remove_segment(&mut self, segment: &Segment) -> MemoryResult<()> {
-        let segment_index = self.segments.iter()
+        let segment_index = self
+            .segments
+            .iter()
             .position(|s| s == segment)
             .expect("segment to remove is not found !");
         self.segments.remove(segment_index);
         self.mapping.unmap(segment);
-        self.allocated_pairs.retain(|(vpn, _frame)| !segment.page_range().contains(*vpn));
+        self.allocated_pairs
+            .retain(|(vpn, _frame)| !segment.page_range().contains(*vpn));
         Ok(())
     }
     pub fn add_segment(&mut self, segment: Segment, init_data: Option<&[u8]>) -> MemoryResult<()> {
         assert!(!self.overlap_with(segment.page_range()));
-        self.allocated_pairs.extend(self.mapping.map(&segment, init_data)?);
+        self.allocated_pairs
+            .extend(self.mapping.map(&segment, init_data)?);
         self.segments.push(segment);
         Ok(())
     }
@@ -47,7 +51,7 @@ impl MemorySet {
         self.mapping.activate()
     }
     /// 建立内核映射
-    /// 给main函数调用 
+    /// 给main函数调用
     pub fn new_kernel() -> MemoryResult<MemorySet> {
         extern "C" {
             fn text_start();
@@ -83,7 +87,9 @@ impl MemorySet {
             // .bss 段，rw-
             Segment {
                 map_type: MapType::Linear,
-                range: Range::<VirtualAddress>::from(VirtualAddress::from(bss_start as usize)..*KERNEL_END_ADDRESS),
+                range: Range::<VirtualAddress>::from(
+                    VirtualAddress::from(bss_start as usize)..*KERNEL_END_ADDRESS,
+                ),
                 flags: Flags::READABLE | Flags::WRITABLE,
             },
             // 剩余内存空间，rw-

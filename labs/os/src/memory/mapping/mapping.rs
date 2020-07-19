@@ -1,13 +1,13 @@
 //! 页表的构建 [`Mapping`]
-//! 
-//! 
+//!
+//!
 
 use crate::memory::{
     address::*,
     config::PAGE_SIZE,
     frame::{FrameTracker, FRAME_ALLOCATOR},
     mapping::{Flags, MapType, PageTable, PageTableEntry, PageTableTracker, Segment},
-    MemoryResult
+    MemoryResult,
 };
 use alloc::{vec, vec::Vec};
 use core::cmp::min;
@@ -16,7 +16,7 @@ use core::ptr::slice_from_raw_parts_mut;
 #[derive(Default)]
 pub struct Mapping {
     page_tables: Vec<PageTableTracker>,
-    root_ppn: PhysicalPageNumber
+    root_ppn: PhysicalPageNumber,
 }
 
 impl Mapping {
@@ -33,18 +33,21 @@ impl Mapping {
         let root_ppn = root_table.page_number();
         Ok(Mapping {
             page_tables: vec![root_table],
-            root_ppn
+            root_ppn,
         })
     }
     /// 离散映射的时候会返回分配的物理页(和虚拟地址的tuple)的Vec
-    pub fn map(&mut self, segment: &Segment, init_data: Option<&[u8]>)
-        -> MemoryResult<Vec<(VirtualPageNumber, FrameTracker)>> {
+    pub fn map(
+        &mut self,
+        segment: &Segment,
+        init_data: Option<&[u8]>,
+    ) -> MemoryResult<Vec<(VirtualPageNumber, FrameTracker)>> {
         match segment.map_type {
             MapType::Linear => {
                 for vpn in segment.page_range().iter() {
                     self.map_one(vpn, vpn.into(), segment.flags | Flags::VALID)?;
                 }
-                if let Some(data) = init_data{
+                if let Some(data) = init_data {
                     unsafe {
                         (&mut *slice_from_raw_parts_mut(segment.range.start.deref(), data.len()))
                             .copy_from_slice(data);
@@ -67,7 +70,9 @@ impl Mapping {
                             let page_address = VirtualAddress::from(*vpn);
                             let start = if segment.range.start > page_address {
                                 segment.range.start - page_address
-                            } else { 0 };
+                            } else {
+                                0
+                            };
                             let stop = min(PAGE_SIZE, segment.range.end - page_address);
                             let dst_slice = &mut frame[start..stop];
                             let src_slice = &data[(page_address + start - segment.range.start)
@@ -111,7 +116,8 @@ impl Mapping {
             llvm_asm!("csrr $0, satp": "=r"(current_ppn) ::: "volatile");
             current_ppn ^= 8 << 60;
         }
-        let root_table: &PageTable = PhysicalAddress::from(PhysicalPageNumber(current_ppn)).deref_kernel();
+        let root_table: &PageTable =
+            PhysicalAddress::from(PhysicalPageNumber(current_ppn)).deref_kernel();
         let vpn = VirtualPageNumber::floor(va);
         let mut entry = &root_table.entries[vpn.levels()[0]];
         let mut length = 12 + 2 * 9;
@@ -130,11 +136,15 @@ impl Mapping {
         let offset = va.0 & ((1 << length) - 1);
         Some(PhysicalAddress(base + offset))
     }
-    pub fn map_one(&mut self, vpn: VirtualPageNumber, ppn: PhysicalPageNumber, flags: Flags)
-        -> MemoryResult<()> {
-            let entry = self.find_entry(vpn)?;
-            assert!(entry.is_empty(), "virtual address is already mapped!");
-            *entry = PageTableEntry::new(ppn, flags);
-            Ok(())
-        }
+    pub fn map_one(
+        &mut self,
+        vpn: VirtualPageNumber,
+        ppn: PhysicalPageNumber,
+        flags: Flags,
+    ) -> MemoryResult<()> {
+        let entry = self.find_entry(vpn)?;
+        assert!(entry.is_empty(), "virtual address is already mapped!");
+        *entry = PageTableEntry::new(ppn, flags);
+        Ok(())
+    }
 }

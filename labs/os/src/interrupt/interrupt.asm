@@ -13,13 +13,15 @@
 # 进入中断
 # 保存 Context 并且进入 Rust 中的中断处理函数 interrupt::handler::handle_interrupt()
 __interrupt:
+    # 内核栈
+    csrrw   sp, sscratch, sp
     # 在栈上开辟 Context 所需的空间
-    addi    sp, sp, -34*8
+    addi    sp, sp, -36*8
 
     # 保存通用寄存器，除了 x0（固定为 0）
     SAVE    x1, 1
-    # 将原来的 sp（sp 又名 x2）写入 2 位置
-    addi    x1, sp, 34*8
+    # 将原来的 sp 写入 2 位置
+    csrr    x1, sscratch
     SAVE    x1, 2
     # 其他通用寄存器
     SAVE    x3, 3
@@ -71,11 +73,17 @@ __interrupt:
 # 离开中断
 # 从 Context 中恢复所有寄存器，并跳转至 Context 中 sepc 的位置
 __restore:
+    # 返回值/第一个参数 为a0
+    mv      sp, a0
     # 恢复 CSR
     LOAD    s1, 32
     LOAD    s2, 33
     csrw    sstatus, s1
     csrw    sepc, s2
+
+    # 此时的内核栈写入sscratch
+    addi    s1, sp, 36*8
+    csrw    sscratch, s1
 
     # 恢复通用寄存器
     LOAD    x1, 1

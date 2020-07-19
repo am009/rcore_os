@@ -1,14 +1,14 @@
 //! 单一页表页面（4K） [`PageTable`]，以及相应封装 [`FrameTracker`] 的 [`PageTableTracker`]
-//! 
+//!
 
-use super::page_table_entry::PageTableEntry;
-use super::super::address::{PhysicalPageNumber};
+use super::super::address::PhysicalPageNumber;
 use super::super::{config::PAGE_SIZE, frame::FrameTracker};
+use super::page_table_entry::PageTableEntry;
 
 /// 创建时申请物理页将指向页的指针转为PageTable类型
 #[repr(C)]
 pub struct PageTable {
-    pub entries: [PageTableEntry; PAGE_SIZE / 8]
+    pub entries: [PageTableEntry; PAGE_SIZE / 8],
 }
 
 impl PageTable {
@@ -29,7 +29,6 @@ impl PageTableTracker {
         self.0.page_number()
     }
 }
-
 
 impl core::ops::Deref for PageTableTracker {
     type Target = PageTable;

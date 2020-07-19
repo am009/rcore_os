@@ -1,5 +1,3 @@
-
-
 extern crate bit_field;
 use bit_field::BitArray;
 
@@ -18,14 +16,14 @@ const BITMAP_SIZE: usize = 4096;
 
 pub struct BitmapVectorAllocator {
     capacity: usize,
-    bitmap: [u8; BITMAP_SIZE / 8]
+    bitmap: [u8; BITMAP_SIZE / 8],
 }
 
 impl VectorAllocator for BitmapVectorAllocator {
     fn new(capacity: usize) -> Self {
         Self {
             capacity: core::cmp::min(BITMAP_SIZE, capacity),
-            bitmap: [0u8; BITMAP_SIZE / 8]
+            bitmap: [0u8; BITMAP_SIZE / 8],
         }
     }
     fn alloc(&mut self, size: usize, align: usize) -> Option<usize> {

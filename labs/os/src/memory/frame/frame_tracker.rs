@@ -1,8 +1,7 @@
-/// `Tracker` 就是指向物理页面的智能指针, 
-/// 对接物理内存管理器, 自动析构
-
-use crate::memory::address::{PhysicalPageNumber, PhysicalAddress};
 use super::allocator::FRAME_ALLOCATOR;
+/// `Tracker` 就是指向物理页面的智能指针,
+/// 对接物理内存管理器, 自动析构
+use crate::memory::address::{PhysicalAddress, PhysicalPageNumber};
 use crate::memory::config::PAGE_SIZE;
 
 pub struct FrameTracker(pub(super) PhysicalPageNumber);
@@ -20,7 +19,7 @@ impl FrameTracker {
 
 impl core::ops::Deref for FrameTracker {
     type Target = [u8; PAGE_SIZE];
-    fn deref(& self) -> & Self::Target {
+    fn deref(&self) -> &Self::Target {
         self.page_number().deref_kernel()
     }
 }

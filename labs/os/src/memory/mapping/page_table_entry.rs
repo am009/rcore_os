@@ -1,11 +1,11 @@
 //! 页表项
-//! 
+//!
 //! RISC-V 64 现有两种地址长度：39 位和 48 位，其中 Sv39 的虚拟地址就包括三级页表和页内偏移。
 //! `3 * 9 + 12 = 39`
 //!
 //! 我们使用 Sv39，Sv48 同理，只是它具有四级页表。
 
-use super::super::address::{PhysicalPageNumber, PhysicalAddress};
+use super::super::address::{PhysicalAddress, PhysicalPageNumber};
 use bit_field::BitField;
 use bitflags::bitflags;
 
@@ -15,8 +15,9 @@ pub struct PageTableEntry(usize);
 impl PageTableEntry {
     pub fn new(page_number: PhysicalPageNumber, flags: Flags) -> Self {
         Self(
-            *0usize.set_bits(..8, flags.bits() as usize)
-                .set_bits(10..54, page_number.into())
+            *0usize
+                .set_bits(..8, flags.bits() as usize)
+                .set_bits(10..54, page_number.into()),
         )
     }
     pub fn clear(&mut self) {
@@ -44,7 +45,8 @@ impl PageTableEntry {
 
 impl core::fmt::Debug for PageTableEntry {
     fn fmt(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-        formatter.debug_struct("PageTableEntry")
+        formatter
+            .debug_struct("PageTableEntry")
             .field("value", &self.0)
             .field("page_number", &self.page_number())
             .field("flags", &self.flags())

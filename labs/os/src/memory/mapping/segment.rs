@@ -1,20 +1,20 @@
 //! 映射类型 [`MapType`] 和映射片段 [`Segment`]
 
-use crate::memory::range::Range;
+use crate::memory::address::{PhysicalPageNumber, VirtualAddress, VirtualPageNumber};
 use crate::memory::mapping::Flags;
-use crate::memory::address::{VirtualAddress, VirtualPageNumber, PhysicalPageNumber};
+use crate::memory::range::Range;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum MapType {
     Linear,
-    Framed
+    Framed,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Segment {
     pub map_type: MapType,
     pub range: Range<VirtualAddress>,
-    pub flags: Flags
+    pub flags: Flags,
 }
 
 impl Segment {
@@ -22,12 +22,12 @@ impl Segment {
     pub fn iter_mapped(&self) -> Option<impl Iterator<Item = PhysicalPageNumber>> {
         match self.map_type {
             MapType::Linear => Some(self.page_range().into().iter()),
-            MapType::Framed => None
+            MapType::Framed => None,
         }
     }
     pub fn page_range(&self) -> Range<VirtualPageNumber> {
         Range::from(
-            VirtualPageNumber::floor(self.range.start)..VirtualPageNumber::ceil(self.range.end)
+            VirtualPageNumber::floor(self.range.start)..VirtualPageNumber::ceil(self.range.end),
         )
     }
 }

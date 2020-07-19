@@ -3,15 +3,15 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Range<T: From<usize> + Into<usize> + Copy> {
     pub start: T,
-    pub end: T
+    pub end: T,
 }
 
 /// 兼容core::ops::Range
 impl<T: From<usize> + Into<usize> + Copy, U: Into<T>> From<core::ops::Range<U>> for Range<T> {
-    fn from(range: core::ops::Range<U>) -> Self{
+    fn from(range: core::ops::Range<U>) -> Self {
         Self {
             start: range.start.into(),
-            end: range.end.into()
+            end: range.end.into(),
         }
     }
 }
@@ -35,7 +35,7 @@ impl<T: From<usize> + Into<usize> + Copy> Range<T> {
     pub fn into<U: From<usize> + Into<usize> + Copy + From<T>>(self) -> Range<U> {
         Range::<U> {
             start: U::from(self.start),
-            end: U::from(self.end)
+            end: U::from(self.end),
         }
     }
 

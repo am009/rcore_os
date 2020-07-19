@@ -1,4 +1,3 @@
-
 #![no_std]
 #![no_main]
 #![feature(llvm_asm)]
@@ -9,14 +8,16 @@
 #![warn(clippy::all)]
 #![feature(slice_fill)]
 #![allow(dead_code)]
+#![feature(drain_filter)]
 #[macro_use]
 
-
 mod console;
-mod panic;
-mod sbi;
 mod interrupt;
 mod memory;
+mod panic;
+mod process;
+mod sbi;
+mod unsafe_wrapper;
 extern crate alloc;
 
 global_asm!(include_str!("entry.asm"));
@@ -24,24 +25,40 @@ global_asm!(include_str!("entry.asm"));
 #[no_mangle]
 pub extern "C" fn rust_main() -> ! {
     // 初始化各种模块
-    interrupt::init();
     memory::init();
+    interrupt::init();
+    
+    start_kernel_thread(test_kernel_thread as usize, Some(&[0usize]));
 
-    let remap = memory::mapping::MemorySet::new_kernel().unwrap();
-    remap.activate();
+    process::PROCESSOR.get().run()
+
+}
+
+fn start_kernel_thread(entry_point: usize, arguments: Option<&[usize]>) {
+    let process = process::Process::new_kernel().unwrap();
+    let thread = process::Thread::new(process, entry_point, arguments).unwrap();
+    process::PROCESSOR.get().add_thread(thread);
+}
+
+fn test_kernel_thread(id: usize) {
+    println!("hello from kernel thread {}", id);
 
     println!("kernel end at: {:x?}", *memory::config::KERNEL_END_ADDRESS);
 
     for _ in 0..2 {
         let frame_0 = match memory::frame::FRAME_ALLOCATOR.lock().alloc() {
             Result::Ok(frame_tracker) => frame_tracker,
-            Result::Err(err) => panic!("{}", err)
+            Result::Err(err) => panic!("{}", err),
         };
         let frame_1 = match memory::frame::FRAME_ALLOCATOR.lock().alloc() {
             Result::Ok(frame_tracker) => frame_tracker,
-            Result::Err(err) => panic!("{}", err)
+            Result::Err(err) => panic!("{}", err),
         };
-        println!("alloc and get {:x?} and {:x?}", frame_0.address(), frame_1.address());
+        println!(
+            "alloc and get {:x?} and {:x?}",
+            frame_0.address(),
+            frame_1.address()
+        );
     }
 
     // 动态内存分配测试
@@ -60,10 +77,10 @@ pub extern "C" fn rust_main() -> ! {
         assert_eq!(value, i);
     }
     println!("heap test passed");
-    
 
     unsafe {
         llvm_asm!("ebreak"::::"volatile");
     };
     unreachable!();
+
 }

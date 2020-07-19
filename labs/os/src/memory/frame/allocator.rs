@@ -1,10 +1,9 @@
-
-use crate::memory::config::{KERNEL_END_ADDRESS, MEMORY_END_ADDRESS};
-use crate::memory::address::{PhysicalPageNumber, PhysicalAddress}; 
-use crate::memory::MemoryResult;
-use crate::memory::range::Range;
 use super::frame_tracker::FrameTracker;
 use super::stacked_allocator::StackedAllocator;
+use crate::memory::address::{PhysicalAddress, PhysicalPageNumber};
+use crate::memory::config::{KERNEL_END_ADDRESS, MEMORY_END_ADDRESS};
+use crate::memory::range::Range;
+use crate::memory::MemoryResult;
 
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -13,10 +12,11 @@ use spin::Mutex;
 pub type AllocImpl = StackedAllocator;
 
 lazy_static! {
-    pub static ref FRAME_ALLOCATOR: Mutex<FrameAllocator<AllocImpl>> = Mutex::new(FrameAllocator::new(Range::from(
-            PhysicalPageNumber::ceil(PhysicalAddress::from(*KERNEL_END_ADDRESS))..PhysicalPageNumber::floor(MEMORY_END_ADDRESS),
-        )
-    ));
+    pub static ref FRAME_ALLOCATOR: Mutex<FrameAllocator<AllocImpl>> =
+        Mutex::new(FrameAllocator::new(Range::from(
+            PhysicalPageNumber::ceil(PhysicalAddress::from(*KERNEL_END_ADDRESS))
+                ..PhysicalPageNumber::floor(MEMORY_END_ADDRESS),
+        )));
 }
 
 /// 分配器：固定容量，每次分配 / 回收一个元素
@@ -33,14 +33,14 @@ pub struct FrameAllocator<T: Allocator> {
     /// 起始页号
     start_ppn: PhysicalPageNumber,
     /// 分配器
-    allocator: T
+    allocator: T,
 }
 
 impl<T: Allocator> FrameAllocator<T> {
     pub fn new(range: impl Into<Range<PhysicalPageNumber>> + Copy) -> Self {
         FrameAllocator {
             start_ppn: range.into().start,
-            allocator: T::new(range.into().len())
+            allocator: T::new(range.into().len()),
         }
     }
 

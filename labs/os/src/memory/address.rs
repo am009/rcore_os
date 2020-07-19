@@ -1,4 +1,4 @@
-use super::config::{PAGE_SIZE, KERNEL_MAP_OFFSET};
+use super::config::{KERNEL_MAP_OFFSET, PAGE_SIZE};
 use bit_field::BitField;
 
 #[repr(C)]
@@ -18,12 +18,12 @@ pub struct PhysicalPageNumber(pub usize);
 pub struct VirtualPageNumber(pub usize);
 
 /// 指针转换为虚拟地址
-impl<T> From<* const T> for VirtualAddress {
+impl<T> From<*const T> for VirtualAddress {
     fn from(pointer: *const T) -> Self {
         Self(pointer as usize)
     }
 }
-impl<T> From<* mut T> for VirtualAddress {
+impl<T> From<*mut T> for VirtualAddress {
     fn from(pointer: *mut T) -> Self {
         Self(pointer as usize)
     }
@@ -81,9 +81,11 @@ impl VirtualPageNumber {
         VirtualAddress::from(self).deref()
     }
     pub fn levels(self) -> [usize; 3] {
-        [   self.0.get_bits(18..27),
+        [
+            self.0.get_bits(18..27),
             self.0.get_bits(9..18),
-            self.0.get_bits(0..9)   ]
+            self.0.get_bits(0..9),
+        ]
     }
 }
 

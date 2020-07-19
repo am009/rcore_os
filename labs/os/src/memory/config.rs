@@ -9,7 +9,6 @@ extern "C" {
 
 pub const PAGE_SIZE: usize = 4096;
 
-
 /// MMIO 设备段内存区域起始地址
 pub const DEVICE_START_ADDRESS: PhysicalAddress = PhysicalAddress(0x1000_0000);
 /// MMIO 设备段内存区域结束地址

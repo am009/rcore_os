@@ -1,15 +1,14 @@
-
 use super::allocator::Allocator;
 use alloc::{vec, vec::Vec};
 
 pub struct StackedAllocator {
-    list: Vec<(usize, usize)>
+    list: Vec<(usize, usize)>,
 }
 
 impl Allocator for StackedAllocator {
     fn new(capacity: usize) -> Self {
         Self {
-            list: vec![(0, capacity)]
+            list: vec![(0, capacity)],
         }
     }
 

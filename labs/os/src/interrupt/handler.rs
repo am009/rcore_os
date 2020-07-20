@@ -41,7 +41,7 @@ pub fn init() {
 /// 具体的中断类型需要根据 scause 来推断，然后分别处理
 #[no_mangle]
 pub fn handle_interrupt(context: &mut Context, scause: Scause, stval: usize) -> *mut Context {
-    // println!("{:x?}", context.scause.cause());
+    // println!("{:x?}, {:x?}", scause.cause(), stval);
     {
         let mut processor = PROCESSOR.get();
         let current_thread = processor.current_thread();

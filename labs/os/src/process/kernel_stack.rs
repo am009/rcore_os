@@ -17,4 +17,7 @@ impl KernelStack {
         }
         push_address
     }
+    pub fn get_top(&self) -> usize {
+        &self.0 as *const _ as usize + size_of::<Self>()
+    }
 }

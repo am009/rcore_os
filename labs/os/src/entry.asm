@@ -44,12 +44,16 @@ boot_stack_top:
 
     .section .data
     .align 12
+    .global boot_page_table
 boot_page_table:
     .quad 0
     .quad 0
     # 2   0x8000_0000 -> 0x8000_0000
     .quad (0x80000 << 10) | 0xcf
-    .zero 507 * 8
+    .zero 505 * 8
+    # 第 508 项：0xffff_ffff_0000_0000 -> 0x0000_0000，0xcf 表示 VRWXAD 均为 1
+    .8byte (0x00000 << 10) | 0xcf
+    .8byte 0
     # 510 0xffff_ffff_8000_0000 -> 0x8000_0000
     .quad (0x80000 << 10) | 0xcf
     .quad 0

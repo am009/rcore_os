@@ -43,6 +43,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "bitvec"
+version = "0.17.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41262f11d771fd4a61aa3ce019fca363b4b6c282fca9da2a31186d3965a47a5c"
+dependencies = [
+ "either",
+ "radium",
+]
+
+[[package]]
 name = "buddy_system_allocator"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -50,6 +60,35 @@ checksum = "9e953b958d83e13a44b1ead5b6aaa2a5f854bd5170239a66b606e030a14d018f"
 dependencies = [
  "rustversion",
  "spin",
+]
+
+[[package]]
+name = "cfg-if"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+
+[[package]]
+name = "device_tree"
+version = "1.0.3"
+source = "git+https://github.com/rcore-os/device_tree-rs#eee2c23d50a2cdacb7777429d71e00691b361978"
+
+[[package]]
+name = "either"
+version = "1.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
+
+[[package]]
+name = "filetime"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "affc17579b132fc2461adf7c575cc6e8b134ebca52c51f5411388965227dc695"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "redox_syscall",
+ "winapi",
 ]
 
 [[package]]
@@ -72,6 +111,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "libc"
+version = "0.2.73"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd7d4bd64732af4bf3a67f367c27df8520ad7e230c5817b8ff485864d80242b9"
+
+[[package]]
+name = "log"
+version = "0.4.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "memchr"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -84,10 +138,15 @@ dependencies = [
  "bit_field",
  "bitflags",
  "buddy_system_allocator",
+ "device_tree",
  "hashbrown",
  "lazy_static",
+ "rcore-fs",
+ "rcore-fs-sfs",
  "riscv",
  "spin",
+ "virtio-drivers",
+ "xmas-elf",
 ]
 
 [[package]]
@@ -107,6 +166,40 @@ checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "radium"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "def50a86306165861203e7f84ecffbbdfdea79f0e51039b33de1e952358c47ac"
+
+[[package]]
+name = "rcore-fs"
+version = "0.1.0"
+source = "git+https://github.com/rcore-os/rcore-fs#b9aaa4c11203b0bc5c61399d7a6ace621a14cc8d"
+dependencies = [
+ "filetime",
+ "spin",
+ "winapi",
+]
+
+[[package]]
+name = "rcore-fs-sfs"
+version = "0.1.0"
+source = "git+https://github.com/rcore-os/rcore-fs#b9aaa4c11203b0bc5c61399d7a6ace621a14cc8d"
+dependencies = [
+ "bitvec",
+ "log",
+ "rcore-fs",
+ "spin",
+ "static_assertions",
+]
+
+[[package]]
+name = "redox_syscall"
+version = "0.1.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
 
 [[package]]
 name = "regex"
@@ -189,6 +282,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
+name = "static_assertions"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f3eb36b47e512f8f1c9e3d10c2c1965bc992bd9cdb024fa581e2194501c83d3"
+
+[[package]]
 name = "syn"
 version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -213,3 +312,56 @@ name = "unicode-xid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
+
+[[package]]
+name = "virtio-drivers"
+version = "0.1.0"
+source = "git+https://github.com/rcore-os/virtio-drivers#dfa70e1425c9eac1b30e671be61b557a3ce56e7e"
+dependencies = [
+ "bitflags",
+ "log",
+ "volatile",
+]
+
+[[package]]
+name = "volatile"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6af0edf5b4faacc31fc51159244d78d65ec580f021afcef7bd53c04aeabc7f29"
+
+[[package]]
+name = "winapi"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
+dependencies = [
+ "winapi-i686-pc-windows-gnu",
+ "winapi-x86_64-pc-windows-gnu",
+]
+
+[[package]]
+name = "winapi-i686-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
+name = "winapi-x86_64-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "xmas-elf"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e74de9a366f6ab8c405fa6b371d9ac24943921fa14b3d64afcb202065c405f11"
+dependencies = [
+ "zero",
+]
+
+[[package]]
+name = "zero"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f1bc8a6b2005884962297587045002d8cfb8dcec9db332f4ca216ddc5de82c5"

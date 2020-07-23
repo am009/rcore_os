@@ -2,14 +2,9 @@
 
 
 回顾ucore, ucore的lab1也主要讲了中断, lab2讲分页
-ucore的进程分了好几个lab, 内核进程, 用户进程, 进程调度.
+ucore的进程管理分了好几个lab, 内核进程, 用户进程, 进程调度.
 
 添加了interrupt/context.rs, 子文件也是一个mod, interrupt文件夹也是一个新的mod, 现在rust2018, 既可以采用src/interrupt/mod.rs, 也可以用src/interrupt.rs来代表整个文件夹.
-
-另外使用了std中总是会panic的unreachable宏.
-
-1. risc-v的异常, trap, 硬件中断的区别和辨别???
-
 
 ### CSR 是什么
 
@@ -24,22 +19,25 @@ https://content.riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf
 
 操作这相关的寄存器的包装, riscv, 文档在这
 https://docs.rs/riscv/0.6.0/riscv/register/index.html
-dependencies里写的居然是rcore自己的fork, 而且比官方的多了特别多的commit, 太神奇了, luojia他已经参与进去了两个commit, 也不知道他是怎么参与进去的, 我也想参与进去啊😂, 也许我水平不够吧.
+dependencies里写的居然是rcore自己的fork, 而且比官方的多了特别多的commit, 太神奇了, luojia他已经参与进去了两个commit, 也不知道他是怎么参与进去的, 可能因为他本来就是rust-embedded那边来的吧.
+我也想参与进去😂, 也许我水平不够吧.
 
 ### RISC-V中断
 比较关键的一点是sbi做什么, 而操作系统做什么
 https://github.com/riscv/riscv-sbi-doc/blob/master/riscv-sbi.adoc
 看这个文档. 
 重要的有: 时钟中断要通过sbi设置
-异常委托机制的使用: 默认是所有中断都到m模式, mideleg寄存器可以设置把哪些中断委托给s模式. medeleg设置把哪些异常委托给s模式.
-sstatus的SIE位是总开关, 中断时会被放到SPIE(sret的时候会恢复回去(riscv-privileged-3.1.10)), 之前的权限模式被放到sstatus的SPP
+异常委托机制的使用: 默认是所有中断都转到m模式的mtvec, 通过设置mideleg寄存器可以设置把哪些中断委托给s模式.
+sstatus的SIE位是总开关, 中断时会被放到SPIE(sret的时候会恢复回去(riscv-privileged-3.1.10)), 之前的权限模式被放到sstatus的SPP.
+执行相关的sRet指令的时候, (是不是完全相当于??TODO)类似于产生异常的逆过程. 1是会把sepc恢复到pc, 2是sstatus中各种previous位都恢复到原来的位置. mret, uret类似.
 
 
-每个单独的中断屏蔽位在sie寄存器. 当前准备处理的中断位在sip寄存器中, 这两个寄存器本质上都是屏蔽没有区别?? 
-只有被委派的对应位能够修改.
-所以具体哪些中断被委派了?? 分析一下启动时候opensbi打印的委派寄存器的值吧.
+每个单独的中断屏蔽位在sie寄存器. 当前准备处理的中断位在sip寄存器中, 这两个寄存器本质上都是屏蔽没有区别?? 这两个寄存器中, 只有被委派的对应位能够修改.
+
+所以具体哪些中断被委派了?? 启动时候opensbi会打印委派寄存器的值.
 MIDELEG : 0x0000000000000222
 MEDELEG : 0x000000000000b109
+分析一下TODO
 
 
 中断寄存器stvec指向的是中断的入口. 不像x86有一长条的中断向量表. 有两种模式, 向量模式和直接模式, 直接模式用一个地址处理所有中断, 向量模式则会根据异常的不同跳转到不同的位置. 
@@ -104,3 +102,13 @@ opensbi估计已经开启了并且委派好了中断??
 
 时钟中断的初始化就是首先修改sie寄存器, 允许时钟中断, 再开启sstauts的中断允许位. 再设置第一次的时钟. 每次时钟中断的时候, 都会从中断处理程序那走一遭, 然后调用tick函数计数并继续设置下一次时钟.
 目前设置的是每10 0000条指令产生一次时钟中断
+
+## 其他问题
+
+1. risc-v的trap, 异常, 中断的区别和辨别???
+会导致跳转的有中断和异常, 这根据mcause的最高位可以判断, 各种原因分别有自己的编号.
+一方面, vector模式的中断处理中, 如果是异常, 那么还是跳转到Base地址, 如果是中断, 则会跳转到base地址\+4\*中断原因编号.
+而这里中断的分类也是比较粗糙的. 分为不同特权级的硬件中断, 不同特权级的软件中断, 不同特权级的时钟中断. 不同特权级的ecall指令则被分类在Exception中. 
+
+
+unreachable宏: 总是会panic, 并且为编译器的优化提供方便

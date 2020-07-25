@@ -26,6 +26,13 @@ impl<T> Lock<T> {
             sstatus
         }
     }
+    pub fn is_locked(&self) -> bool {
+        if let Some(_m) = self.0.try_lock() {
+            false
+        } else {
+            true
+        }
+    }
 
     /// 不安全：获得不上锁的对象引用
     ///

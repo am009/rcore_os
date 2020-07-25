@@ -1,6 +1,8 @@
 
 mod config;
 mod inode_ext;
+pub mod stdin;
+pub mod stdout;
 
 use lazy_static::lazy_static;
 use alloc::{sync::Arc, vec::Vec};

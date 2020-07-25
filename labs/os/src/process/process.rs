@@ -1,4 +1,5 @@
 use super::*;
+use xmas_elf::ElfFile;
 
 pub struct Process {
     pub is_user: bool,
@@ -13,8 +14,12 @@ impl Process {
             memory_set: MemorySet::new_kernel()?,
         })))
     }
-    // pub fn from_elf()
-
+    pub fn from_elf(file: &ElfFile, is_user: bool) -> MemoryResult<Arc<RwLock<Self>>> {
+        Ok(Arc::new(RwLock::new(Self {
+            is_user,
+            memory_set: MemorySet::from_elf(file, is_user)?,
+        })))
+    }
     pub fn alloc_page_range(
         &mut self,
         size: usize,

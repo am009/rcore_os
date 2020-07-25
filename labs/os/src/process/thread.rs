@@ -1,5 +1,8 @@
 use super::*;
 use core::hash::{Hash, Hasher};
+use rcore_fs::vfs::INode;
+use crate::fs::stdin::STDIN;
+use crate::fs::stdout::STDOUT;
 
 pub type ThreadID = isize;
 
@@ -16,7 +19,7 @@ pub struct ThreadInner {
     pub context: Option<Context>,
     pub sleeping: bool,
     pub dead: bool,
-    // pub descriptors: Vec<Arc<dyn Inode>>
+    pub descriptors: Vec<Arc<dyn INode>>
 }
 
 impl Thread {
@@ -59,8 +62,8 @@ impl Thread {
             inner: Mutex::new(ThreadInner {
                 context: Some(context),
                 sleeping: false,
-                dead: false
-                // descriptor:
+                dead: false,
+                descriptors: vec![STDIN.clone(), STDOUT.clone()]
             }),
         });
 

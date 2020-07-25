@@ -6,8 +6,6 @@
 3. 实现系统调用支持
 4. 支持文件描述符
 
-内核线程加载, 
-
 
 ## 相关修改
 
@@ -77,6 +75,16 @@ VirtIOBlkDriver则需要实现read_block/write_block的Driver接口, 另外给�
 ### inode_ext.rs
 impl INodeExt for dyn INode 通过这种方法为已有的Inode类型增加功能. 额外实现了 ls这个直接打印而不返回值的函数, 和readall函数, 把所有内容读到`Vec<u8>`并返回.
 
+## elf相关代码
+
+ELF文件也可以看作是一个地址空间. 因为它定义了各个段的映射关系.
+MemorySet中增加根据ELF文件创建的from_elf函数, 它遍历elf文件的每个段, 根据大小和权限映射每个段.
+
+首先在program_header中对每个为load类型的段, 读取开始地址和大小和数据和权限之后进行映射
+
+process中也加入from_elf函数, 主要是调用MemorySet中的from_elf函数.
+
+为什么这里获取的data是SegmentData::Undefined类型??
 
 ## 其他疑问
 

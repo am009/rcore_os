@@ -20,12 +20,16 @@ mod sbi;
 mod unsafe_wrapper;
 mod drivers;
 mod fs;
+mod kernel;
 extern crate alloc;
 
 use process::{Process, PROCESSOR, Thread};
 use spin::RwLock;
 use alloc::sync::Arc;
 use memory::address::PhysicalAddress;
+use fs::ROOT_INODE;
+use fs::INodeExt;
+use xmas_elf::ElfFile;
 
 global_asm!(include_str!("entry.asm"));
 
@@ -39,11 +43,10 @@ pub extern "C" fn rust_main(hart_id: usize, dtb_pa: PhysicalAddress) -> ! {
     println!("dtb at {:x?}.", dtb_pa);
     println!("kernel end at: {:x?}", *memory::config::KERNEL_END_ADDRESS);
 
-    
-    unsafe {
-        let sscratch: usize = process::KERNEL_STACK.get_top();
-        llvm_asm!("csrw sscratch, $0" :: "r"(sscratch) :: "volatile");
-    }    
+    // unsafe {
+    //     let sscratch: usize = process::KERNEL_STACK.get_top();
+    //     llvm_asm!("csrw sscratch, $0" :: "r"(sscratch) :: "volatile");
+    // }
 
     // 初始化各种模块
     memory::init();
@@ -51,23 +54,35 @@ pub extern "C" fn rust_main(hart_id: usize, dtb_pa: PhysicalAddress) -> ! {
     drivers::init(dtb_pa);
     fs::init();
 
+    // {
+    //     let mut processor = PROCESSOR.get();
+    //     let kernel_process = Process::new_kernel().unwrap();
+    //     // for i in 1..33usize {
+    //     //     processor.add_thread(create_kernel_thread(
+    //     //         kernel_process.clone(),
+    //     //         test_kernel_thread as usize,
+    //     //         Some(&[i]),
+    //     //     ));
+    //     // }
+    //     processor.add_thread(create_kernel_thread(kernel_process.clone(), test_kernel as usize, Some(&[0usize])));
+    // }
     {
-        let mut processor = PROCESSOR.get();
-        let kernel_process = Process::new_kernel().unwrap();
-        // for i in 1..33usize {
-        //     processor.add_thread(create_kernel_thread(
-        //         kernel_process.clone(),
-        //         test_kernel_thread as usize,
-        //         Some(&[i]),
-        //     ));
-        // }
-        processor.add_thread(create_kernel_thread(kernel_process.clone(), test_kernel as usize, Some(&[0usize])));
+        PROCESSOR.get().add_thread(create_user_process("hello_world"));
+        // PROCESSOR.get().add_thread(create_user_process("notebook"));
     }
-
+    println!("start!...");
     unsafe { PROCESSOR.unsafe_get().run() }
 
 }
 
+pub fn create_user_process(name: &str) -> Arc<Thread> {
+    let app = ROOT_INODE.find(name).unwrap();
+    let data = app.readall().unwrap();
+    let elf = ElfFile::new(data.as_slice()).unwrap();
+    let process = Process::from_elf(&elf, true).unwrap();
+    println!("user process {} start at entry point {:x}", name, elf.header.pt2.entry_point() as usize);
+    Thread::new(process, elf.header.pt2.entry_point() as usize, None).unwrap()
+}
 
 fn test_kernel_thread(id: usize) {
     println!("hello from kernel thread {}", id);
@@ -75,7 +90,9 @@ fn test_kernel_thread(id: usize) {
 
 fn kernel_thread_exit() {
     // 当前线程标记为结束
-    PROCESSOR.get().current_thread().as_ref().inner().dead = true;
+    {
+        PROCESSOR.get().current_thread().as_ref().inner().dead = true;
+    }
     // 制造一个中断来交给操作系统处理
     unsafe { llvm_asm!("ebreak" :::: "volatile") };
 }
@@ -146,6 +163,5 @@ fn test_kernel(id: usize) {
     // 输出根文件目录内容
     fs::ls("/");
     println!("fs test passed");
-
-    loop {}
+    // unreachable!()
 }

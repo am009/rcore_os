@@ -21,6 +21,7 @@ pub struct Mapping {
 
 impl Mapping {
     pub fn activate(&self) {
+        println!("mapping root page table at: {:x?}", self.root_ppn);
         let new_satp = self.root_ppn.0 | (8 << 60);
         unsafe {
             llvm_asm!("csrw satp, $0" :: "r"(new_satp) :: "volatile");
@@ -135,6 +136,37 @@ impl Mapping {
         let base = PhysicalAddress::from(entry.page_number()).0;
         let offset = va.0 & ((1 << length) - 1);
         Some(PhysicalAddress(base + offset))
+    }
+    pub fn print_page_table(va: VirtualAddress) {
+        println!("print page table for {:x?}", va);
+        let mut current_ppn;
+        unsafe {
+            llvm_asm!("csrr $0, satp": "=r"(current_ppn) ::: "volatile");
+            current_ppn ^= 8 << 60;
+        }
+        let root_table: &PageTable =
+            PhysicalAddress::from(PhysicalPageNumber(current_ppn)).deref_kernel();
+        let vpn = VirtualPageNumber::floor(va);
+        let mut entry = &root_table.entries[vpn.levels()[0]];
+        println!("vpn levels: {:x?}", vpn.levels());
+        let mut length = 12 + 2 * 9;
+        for vpn_slice in &vpn.levels()[1..] {
+            if entry.is_empty() {
+                println!("entry empty at len: {}", length);
+                return;
+            }
+            if entry.has_next_level() {
+                println!("got entry at {:p}, {:x?}", entry, entry);
+                length -= 9;
+                entry = &mut entry.get_next_table().entries[*vpn_slice];
+            } else {
+                break;
+            }
+        }
+        let base = PhysicalAddress::from(entry.page_number()).0;
+        let offset = va.0 & ((1 << length) - 1);
+        println!("find entry at {:p}, {:x?}", entry, entry);
+        println!("find physical addr: {:x?}", PhysicalAddress(base + offset));
     }
     pub fn map_one(
         &mut self,

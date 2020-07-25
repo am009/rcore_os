@@ -43,13 +43,13 @@ qemu: build
 			-nographic \
 			-bios default \
 			-device loader,file=$(BIN_FILE),addr=0x80200000 \
-			-drive file=$(TEST_IMG),format=qcow2,id=sfs \
+			-drive file=$(IMG_FILE),format=qcow2,id=sfs \
 			-device virtio-blk-device,drive=sfs  
 # 一键运行
 run: build qemu
 
 # 一键 gdb
 debug: build
-		mate-terminal -e "gdb-multiarch -ex 'file $(KERNEL_FILE)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234' -ex 'b handle_interrupt' -ex 'c'" &
+		mate-terminal -e "gdb-multiarch -ex 'file $(KERNEL_FILE)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234' -ex 'b rust_main' -ex 'c'" &
 		qemu-system-riscv64 -machine virt -nographic -bios default -device loader,file=$(BIN_FILE),addr=0x80200000 \
-		-drive file=$(TEST_IMG),format=qcow2,id=sfs -device virtio-blk-device,drive=sfs -s -S
+		-drive file=$(IMG_FILE),format=qcow2,id=sfs -device virtio-blk-device,drive=sfs -s -S

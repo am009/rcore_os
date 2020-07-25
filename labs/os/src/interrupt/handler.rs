@@ -4,11 +4,15 @@ use riscv::register::scause::Interrupt;
 use riscv::register::scause::Scause;
 use riscv::register::scause::Trap;
 use riscv::register::stvec;
-use alloc::{format, string::String};
+use riscv::register::sie;
 
 use super::context::Context;
 use crate::interrupt::timer;
 use crate::process::PROCESSOR;
+use crate::memory::address::PhysicalAddress;
+use crate::kernel::syscall_handler;
+use crate::fs::stdin::STDIN;
+use crate::sbi::console_getchar;
 
 global_asm!(include_str!("./interrupt.asm"));
 
@@ -16,21 +20,22 @@ pub fn init() {
     unsafe {
         extern "C" {
             /// 声明__interrupt作为函数
+            #[export_name = "__interrupt"]
             fn __interrupt();
         }
         // 使用 Direct 模式，将中断入口设置为 `__interrupt`
         stvec::write(__interrupt as usize, stvec::TrapMode::Direct);
-        // // 开启外部中断使能
-        // sie::set_sext();
+        // 开启外部中断使能
+        sie::set_sext();
 
-        // // 在 OpenSBI 中开启外部中断
-        // *PhysicalAddress(0x0c00_2080).deref_kernel() = 1u32 << 10;
-        // // 在 OpenSBI 中开启串口
-        // *PhysicalAddress(0x1000_0004).deref_kernel() = 0x0bu8;
-        // *PhysicalAddress(0x1000_0001).deref_kernel() = 0x01u8;
-        // // 其他一些外部中断相关魔数
-        // *PhysicalAddress(0x0C00_0028).deref_kernel() = 0x07u32;
-        // *PhysicalAddress(0x0C20_1000).deref_kernel() = 0u32;
+        // 在 OpenSBI 中开启外部中断
+        *PhysicalAddress(0x0c00_2080).deref_kernel() = 1u32 << 10;
+        // 在 OpenSBI 中开启串口
+        *PhysicalAddress(0x1000_0004).deref_kernel() = 0x0bu8;
+        *PhysicalAddress(0x1000_0001).deref_kernel() = 0x01u8;
+        // 其他一些外部中断相关魔数
+        *PhysicalAddress(0x0C00_0028).deref_kernel() = 0x07u32;
+        *PhysicalAddress(0x0C20_1000).deref_kernel() = 0u32;
 
     }
 }
@@ -42,7 +47,12 @@ pub fn init() {
 #[no_mangle]
 pub fn handle_interrupt(context: &mut Context, scause: Scause, stval: usize) -> *mut Context {
     // println!("{:x?}, {:x?}", scause.cause(), stval);
+    // fault("unimplemented interrupt type", scause, stval);
     {
+        if PROCESSOR.is_locked() {
+            println!("deadlock detected, {:?}, stval: {:x}", scause.cause(), stval);
+            println!("unbelieveable...");
+        }
         let mut processor = PROCESSOR.get();
         let current_thread = processor.current_thread();
         if current_thread.as_ref().inner().dead {
@@ -56,35 +66,45 @@ pub fn handle_interrupt(context: &mut Context, scause: Scause, stval: usize) -> 
         Trap::Exception(Exception::Breakpoint) => breakpoint(context),
         // 时钟中断
         Trap::Interrupt(Interrupt::SupervisorTimer) => supervisor_timer(context),
+        Trap::Exception(Exception::UserEnvCall) => syscall_handler(context),
+        Trap::Interrupt(Interrupt::SupervisorExternal) => supervisor_external(context),
         // 其他情况，终止当前线程
-        _ => Err(format!(
-            "unimplemented interrupt type: {:x?}",
-            scause.cause()
-        )),
-    }.unwrap_or_else(|msg| fault(msg, scause, stval))
+        _ => fault("unimplemented interrupt type", scause, stval)
+    }
+}
+
+fn supervisor_external(context: &mut Context) -> *mut Context {
+    let mut c = console_getchar();
+    if c <= 255 {
+        if c == '\r' as usize {
+            c = '\n' as usize;
+        }
+        STDIN.push(c as u8);
+    }
+    context
 }
 
 /// 处理 ebreak 断点
 ///
 /// 继续执行，其中 `sepc` 增加 2 字节，以跳过当前这条 `ebreak` 指令
-fn breakpoint(context: &mut Context) -> Result<*mut Context, String> {
+fn breakpoint(context: &mut Context) -> *mut Context {
     println!("Breakpoint at 0x{:x}", context.sepc);
     context.sepc += 2;
-    Ok(context)
+    context
 }
 
 /// 处理时钟中断
 ///
 /// 目前只会在 [`timer`] 模块中进行计数
-fn supervisor_timer(context: &mut Context) -> Result<*mut Context, String> {
+fn supervisor_timer(context: &mut Context) -> *mut Context {
     timer::tick();
     // PROCESSOR.get().park_current_thread(context);
     // Ok(PROCESSOR.get().prepare_next_thread())
-    Ok(PROCESSOR.get().tick(context))
+    PROCESSOR.get().tick(context)
 }
 
 /// 出现未能解决的异常
-fn fault(msg: String, scause: Scause, stval: usize) -> *mut Context {
+fn fault(msg: &str, scause: Scause, stval: usize) -> *mut Context {
     // panic!(
     //     "Unresolved interrupt: {:?}\n{:x?}\nstval: {:x}",
     //     scause.cause(),

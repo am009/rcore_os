@@ -13,12 +13,6 @@ ucore的进程管理分了好几个lab, 内核进程, 用户进程, 进程调度
 Control and status registers
 处理特权相关的寄存器
 
-CSR 寄存器（Chapter 4，p59）
-https://content.riscv.org/wp-content/uploads/2017/05/riscv-privileged-v1.10.pdf
-
-CSR 指令（Section 2.8，p33）
-https://content.riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf
-
 操作这相关的寄存器的包装, riscv, 文档在这
 https://docs.rs/riscv/0.6.0/riscv/register/index.html
 dependencies里写的居然是rcore自己的fork, 而且比官方的多了特别多的commit, 太神奇了, luojia他已经参与进去了两个commit, 也不知道他是怎么参与进去的, 可能因为他本来就是rust-embedded那边来的吧.
@@ -159,7 +153,7 @@ TODO 没有完全彻底懂, 不过rcore-tutorial没怎么用到, 就等下次再
 
 当从mip(xip)寄存器中获取值的时候, 得到的是对应寄存器和对应中断产生信号的OR之后的值. 也就是如果这个中断真正在等待, 对应的pending位就为1.
 
-高特权级如果设置了低特权级的对应位, (是回到对应特权级的时候还是立刻?)就会产生对应的中断. 如, m态的程序(设置好对应的stval, scause??), 就可以通过设置mip对应的supervisor的中断pending位, 来伪装触发中断. m态的对应pending位是只读的, mip中对应低特权级的pending位则可读, 也可以写触发上述效果.
+高特权级如果设置了低特权级的对应位, (是回到对应特权级的时候还是立刻?)就会产生对应的中断. 如, m态的程序(设置好对应的stval, scause??), 就可以通过设置mip对应的supervisor的中断pending位, 从而"假装有"中断产生. m态的对应pending位是只读的, mip中对应低特权级的pending位则可读, 也可以写触发上述效果.
 S态软件中断, U态软件中断(基本上)靠这种方式产生. 
 s态和u态的外部中断有什么例子?? u态的外部中断可以有中断处理器产生.
 

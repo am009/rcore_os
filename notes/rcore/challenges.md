@@ -1,9 +1,15 @@
 # 挑战实验题
 
-## 按Ctrl-C杀死当前线程
+## lab4 上
+
+实现在
+https://github.com/am009/rCore-Tutorial/tree/lab-4-challenge
+这个新的分支上
+
+### 按Ctrl-C杀死当前线程
 在处理外部中断读取键盘字符时, 加入打印的函数, 发现当按下Ctrl-C会产生ascii编码为3的控制字符, 在此处判断如果字符等于3的话就杀死当前线程(和fault函数一样).
 
-## fork的实现
+### fork的实现
 
 写得比较晚还是有好处的. 现在的实现直接既复制进程又复制线程.
 目前还没有写时复制机制, 打算把低位地址全部复制了去.
@@ -43,3 +49,7 @@ pub fn main() -> usize {
 ```
 src/memory/mapping/memory_set.rs:29: 'called `Result::unwrap()` on an `Err` value: "no available frame to allocate"'
 ```
+
+## lab4 下
+
+stride scheduling 似乎在ucore稍微接触了一点点... 好像如何判断开始和结束那里没弄明白

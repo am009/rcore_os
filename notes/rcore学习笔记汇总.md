@@ -5,7 +5,7 @@
 [lab1](#lab1中断) 学习了不少RISC-V的中断相关的基础知识, 之后补的中断相关的知识也补在这里了
 [lab3](#lab3虚拟内存管理), [lab4](#lab4线程与调度) 对实现细节写得详细一些, 稍微看懂一点代码就写上去了, 很多函数的实现细节都写下来了.
 
-[实验题](#实验题)在最后, 目前完成了lab4上和lab6的实验题.
+[实验题](#实验题)在最后, 目前完成了lab4上和lab6的实验题, lab4下做到一半.
 
 ## lab1中断
 
@@ -755,4 +755,48 @@ read 8 bytes : abcdefgh.
 thread 2 exit with code 0
 src/process/processor.rs:87: 'all threads terminated, shutting down'
 make[1]: Leaving directory '/home/wjk/os/rCore-Tutorial/os'
+```
+
+### lab4 下
+
+stride scheduling 这不就是我ucore止步的地方... 由于溢出, 如何判断开始和结束那里有点复杂. 还是ucore的文档说的详细, 还给出了很多资料. 
+
+pass指的是当前的地点, stride指的是一次走的大小. 当优先级大于等于1的时候, 进程的stride就最大是 BIG_STRIDE, BIG_STRIDE感觉要小于整数最大值的一半. 
+由于各个进程的pass都聚集在相关的BIG_STRIDE范围内. 最靠前的进程, 向前BIG_STRIDE的范围内都没有其他进程, 最落后的进程, 加上BIG_STRIDE的范围内有所有进程. 怎么在这个(模2的n次方的有限域)内找到最落后的进程?? 只要拿两个进程相减, 差也通过模运算放到有限域内, 根据是否最高位来判断是大于0还是小于0.
+
+假设在mod16的域上, big_stride是4. 有进程的pass分别是15, 16 ,0 ,1. 用1 - 15 (mod 16)得到2, 因此1在15 前面
+
+没想到实现起来不算难, 还算简单, 在alloc::collections里找到了BinaryHeap作为优先级队列. 现在就差如何设置global_pass了. global_pass的设置没怎么看懂...暂且设置为当前最小的那个吧...
+
+仔细看了看论文, 发现无论是动态修改优先级的时候动态修改pass, 还是维护一个global_pass, 都比想象中复杂一些... 实现得还不够好. 明天再继续吧
+
+
+```
+hello from kernel thread 2
+hello from kernel thread 3
+hello from kernel thread 1
+hello 3
+hello 2
+hello 3
+hello 3
+hello 2
+hello 1
+hello 3
+hello 2
+hello 3
+hello 3
+hello 2
+hello 1
+hello 3
+hello 2
+thread 3 exit
+hello 1
+hello 2
+hello 2
+hello 1
+thread 2 exit
+hello 1
+hello 1
+hello 1
+thread 1 exit
 ```

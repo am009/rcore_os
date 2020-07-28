@@ -174,9 +174,14 @@ pass指的是当前的地点, stride指的是一次走的大小. 当优先级大
 
 假设在mod16的域上, big_stride是4. 有进程的pass分别是15, 16 ,0 ,1. 用1 - 15 (mod 16)得到2, 因此1在15 前面
 
-没想到实现起来不算难, 还算简单, 在alloc::collections里找到了BinaryHeap作为优先级队列. 现在就差如何设置global_pass了. global_pass的设置没怎么看懂...暂且设置为当前最小的那个吧...
+没想到实现起来不算难, 还算简单, 在alloc::collections里找到了BinaryHeap作为优先级队列(有不方便移除元素的缺点). 现在就差如何设置global_pass了. global_pass的设置没怎么看懂...暂且设置为当前最小的那个吧...
 
-仔细看了看论文, 发现无论是动态修改优先级的时候动态修改pass, 还是维护一个global_pass, 都比想象中复杂一些... 实现得还不够好. 明天再继续吧
+仔细看了看论文, 发现无论是动态修改优先级的时候动态修改pass, 还是维护一个global_pass, 都比想象中复杂一些... 实现得还不够好. 
+
+再仔细看了看论文, 计算global_pass的global_stride, 似乎真的是把所有进程的priority(tickets)加起来. 这样会导致stride非常小, 再仔细看发现, 是每个时间片都让global_pass前进... 这样的话, global_pass前进一个BIG_STRIDE的距离需要走总priority次, 而每个单独的进程需要走自己的priority次, 这样如果每个进程都走自己的priority次的话, 当所有进程都走了BIG_STRIDE次刚好global_pass也前进了BIG_STRIDE的距离. 论文中的实现是通过获取当前时间,保存上次更新时间来lazy(需要时)计算当前的global_pass, 在这个lab里有点复杂, 我就直接实现一直更新global_pass的版本吧.
+
+当更新优先级的时候, 计算remain, 把remain按照new stride/old stride的比例缩放. 又遇到困难了... 由于BinaryHeap不允许影响内部元素的大小, 需要把对应的成员拿出来再放回去, 而当前加入队列的接口... 居然不支持设置优先级... 暂时加一个加入并且设置优先级的接口吧...
+为了用BinaryHeap, 迁就的地方有点多啊...
 
 
 ```

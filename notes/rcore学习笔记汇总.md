@@ -5,7 +5,7 @@
 [lab1](#lab1中断) 学习了不少RISC-V的中断相关的基础知识, 之后补的中断相关的知识也补在这里了
 [lab3](#lab3虚拟内存管理), [lab4](#lab4线程与调度) 对实现细节写得详细一些, 稍微看懂一点代码就写上去了, 很多函数的实现细节都写下来了.
 
-[实验题](#实验题)在最后, 目前完成了lab4上和lab6的实验题, lab4下做到一半.
+[实验题](#实验题)在最后.
 
 ## lab1中断
 
@@ -805,3 +805,19 @@ hello 1
 hello 1
 thread 1 exit
 ```
+
+
+### lab3 时钟置换算法
+
+没想到时钟置换算法在这个lab3+ 实验框架里实现起来还挺简单的. 而且似乎lab3+的实验框架能自己打印出来缺页次数.
+
+还好微信群里看到了他们之前说要加上`unsafe impl Send for ClockSwapper {}`, 一切换到自己的算法就报一堆错... 似乎是因为*mut PageTableEntry 不能安全在线程间传递, 导致各种全局变量(包括lazy_static), PROCESSOR, STDIN, IDLE_THREAD, 这些用到了Condvar, Thread或者Process的全局变量(STDIN等)因为Condvar里面包含了线程, 线程包含了mappings, mappings包含了我的置换算法, 最终导致了出错.
+
+之前条件写错, 把置换没有被访问过的页面写成了置换访问过的页面了... 疯狂报缺页, 上万次... 忘了清空Access bit, 缺页次数还是209次.
+
+成功清空了Accessed bit 之后缺页只有197次了, 哈哈哈.
+
+回顾一下, 整个swap的实现. 页面调度算法维护的是在内存中的页面, 是mapping中的mapped_pairs成员. 缺页中断方面, 为页面访问异常增加page_fault函数, 然后是调用current_thread.process.inner().memory_set.mapping.handle_page_fault(stval), 并且刷新页表. 在swap_tracker中找到页面, 根据页面调度算法的full()函数判断, 没满就申请内存页, 满了就取出一个映射换出换入.
+而建立新的进程的时候也不是简单地疯狂分配页面, 也是先判断满没满, 没满就一边分配一边push, 满了就从swap分区分配, push页面. 调用SwapTracker::new()来获得新的swap页面, 使用write方法写入.
+
+swap分区的分配是靠全局变量SWAP, 它是文件系统中的一个文件. 并且使用和物理内存分配一样的AllocatorImpl进行分配, SwapTracker就是对下标的封装, 写入/读取的时候则是利用写入SWAP文件write_at/read_at函数的offset, 设置为index乘PAGE_SIZE.
